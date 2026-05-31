@@ -42,6 +42,14 @@ const uploadLimiter = rateLimit({
 app.use('/api', apiLimiter);
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Resume Scanner backend is running.' });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', api: '/api' });
+});
+
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {

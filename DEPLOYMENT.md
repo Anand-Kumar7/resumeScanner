@@ -117,8 +117,10 @@
 
 3. **Add Environment Variable:**
    - Go to Settings → Environment Variables
-   - Key: `VITE_API_URL`
-   - Value: `https://resume-scanner-api.onrender.com` (your Render backend URL)
+   - Key: `VITE_API_BASE_URL`
+   - Value: `https://resume-scanner-api.onrender.com/api` (your Render backend URL)
+   
+   > Note: the app also supports `VITE_API_URL` for backward compatibility.
 
 4. **Deploy**
    - Vercel auto-deploys on push to main
@@ -141,7 +143,7 @@
 Update [frontend/src/main.jsx](frontend/src/main.jsx) or create a config file:
 
 ```javascript
-const API_URL = import.meta.env.VITE_API_URL || 'https://resumescanner-p0gu.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://resumescanner-p0gu.onrender.com/api';
 ```
 
 ---
@@ -228,7 +230,8 @@ If your application is falling back to db.json (local file database) after deplo
 - Ensure SSL requirements are met for cloud databases
 
 ### Frontend calls failing
-- Verify `VITE_API_URL` environment variable is set
+- Verify `VITE_API_BASE_URL` environment variable is set
+- If you used `VITE_API_URL`, that is also supported for backward compatibility
 - Check CORS `ALLOWED_ORIGIN` matches frontend URL
 - Check browser console for CORS errors
 
