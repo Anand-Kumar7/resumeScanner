@@ -17,7 +17,7 @@ import {
 import { useToast } from './components/useToast.js';
 import './App.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://resumescanner-p0gu.onrender.com/api';
 
 function App() {
   const toast = useToast();

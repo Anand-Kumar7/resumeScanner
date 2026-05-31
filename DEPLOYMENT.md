@@ -28,7 +28,11 @@
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin <your-github-repo>
+   # If origin already exists, update it instead of adding it again:
+   git remote set-url origin <your-github-repo>
+   # Or remove and re-add if you prefer:
+   # git remote remove origin
+   # git remote add origin <your-github-repo>
    git push -u origin main
    ```
 
@@ -53,7 +57,7 @@
 
 4. **Deploy**
    - Render will auto-deploy on push to main
-   - Copy your Render backend URL: `https://resume-scanner-api.onrender.com`
+   - Copy your Render backend URL: `https://resumescanner-p0gu.onrender.com`
 
 ---
 
@@ -96,7 +100,7 @@
 Update [frontend/src/main.jsx](frontend/src/main.jsx) or create a config file:
 
 ```javascript
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://resumescanner-p0gu.onrender.com';
 ```
 
 ---
