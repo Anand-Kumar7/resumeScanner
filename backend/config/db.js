@@ -3,22 +3,30 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-let dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || 'resume_screening';
-const connectionUrl = process.env.DATABASE_URL?.trim() || process.env.MYSQL_URL?.trim();
-let dbConfig;
+const knownEnv = (names) => {
+  const env = process.env;
+  const lower = Object.keys(env).reduce((acc, key) => {
+    acc[key.toLowerCase()] = key;
+    return acc;
+  }, {});
 
+  for (const name of names) {
+    const foundKey = lower[name.toLowerCase()];
+    if (foundKey) {
+      return env[foundKey];
+    }
+  }
+  return undefined;
+};
+
+let dbName = knownEnv(['DB_NAME', 'MYSQL_DATABASE', 'MYSQLDATABASE']) || 'resume_screening';
+const connectionUrl = knownEnv(['DATABASE_URL', 'MYSQL_URL', 'MySQL_URL', 'mysql_url'])?.trim();
+let dbConfig;
 const envSources = [];
-if (process.env.DATABASE_URL) envSources.push('DATABASE_URL');
-if (process.env.MYSQL_URL) envSources.push('MYSQL_URL');
-if (process.env.MYSQL_HOST) envSources.push('MYSQL_HOST');
-if (process.env.MYSQLUSER) envSources.push('MYSQLUSER');
-if (process.env.MYSQL_USER) envSources.push('MYSQL_USER');
-if (process.env.DB_HOST) envSources.push('DB_HOST');
-if (process.env.DB_USER) envSources.push('DB_USER');
-if (process.env.DB_PASSWORD) envSources.push('DB_PASSWORD');
-if (process.env.MYSQL_PASSWORD) envSources.push('MYSQL_PASSWORD');
-if (process.env.MYSQLDATABASE) envSources.push('MYSQLDATABASE');
-if (process.env.MYSQL_DATABASE) envSources.push('MYSQL_DATABASE');
+
+const markSource = (source) => {
+  if (!envSources.includes(source)) envSources.push(source);
+};
 
 if (connectionUrl) {
   try {
@@ -32,32 +40,36 @@ if (connectionUrl) {
     if (url.pathname && url.pathname !== '/') {
       dbName = url.pathname.substring(1); // Remove leading '/'
     }
-    envSources.unshift('connection URL');
+    markSource('connection URL');
   } catch (e) {
     console.error('Invalid database connection URL format:', e.message);
     process.exit(1);
   }
 } else {
   dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MYSQLHOST || 'localhost',
-    user: process.env.DB_USER || process.env.MYSQL_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || '',
-    port: process.env.DB_PORT || process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306
+    host: knownEnv(['DB_HOST', 'MYSQL_HOST', 'MYSQLHOST', 'MySQL_Host']) || 'localhost',
+    user: knownEnv(['DB_USER', 'MYSQL_USER', 'MYSQLUSER', 'MySql_User']) || 'root',
+    password: knownEnv(['DB_PASSWORD', 'MYSQL_PASSWORD', 'MYSQLPASSWORD', 'MySql_Password']) || '',
+    port: Number(knownEnv(['DB_PORT', 'MYSQL_PORT', 'MYSQLPORT', 'MySql_Port']) || 3306)
   };
 
-  if (process.env.MYSQL_DATABASE && !process.env.DB_NAME) {
-    dbName = process.env.MYSQL_DATABASE;
+  const explicitDbName = knownEnv(['DB_NAME', 'MYSQL_DATABASE', 'MYSQLDATABASE', 'MySql_Database']);
+  if (explicitDbName) {
+    dbName = explicitDbName;
+    markSource('DB_NAME/MYSQL_DATABASE');
   }
 
-  if (process.env.MYSQLDATABASE && !process.env.DB_NAME) {
-    dbName = process.env.MYSQLDATABASE;
-  }
-
-  const explicitSsl = process.env.DB_SSL || process.env.MYSQL_SSL;
+  const explicitSsl = knownEnv(['DB_SSL', 'MYSQL_SSL', 'MySql_Ssl']);
   if (explicitSsl) {
     dbConfig.ssl = explicitSsl;
+    markSource('DB_SSL/MYSQL_SSL');
   } else if (dbConfig.host && dbConfig.host.includes('planetscale')) {
     dbConfig.ssl = 'amazon';
+    markSource('planetscale SSL');
+  }
+
+  if (dbConfig.host !== 'localhost') {
+    markSource('host override');
   }
 }
 
