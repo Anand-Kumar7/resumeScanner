@@ -3,40 +3,39 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Support both traditional config and connection URL (e.g., for PlanetScale)
+let dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || 'resume_screening';
+const connectionUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
 let dbConfig;
-let dbName = process.env.DB_NAME || 'resume_screening';
 
-if (process.env.DATABASE_URL) {
-  // Parse connection URL like: mysql://user:password@host:port/database
+if (connectionUrl) {
   try {
-    const url = new URL(process.env.DATABASE_URL);
+    const url = new URL(connectionUrl);
     dbConfig = {
       host: url.hostname,
       user: url.username,
       password: url.password,
-      port: url.port || 3306,
-      ssl: 'amazon' // Required for cloud databases like PlanetScale
+      port: url.port ? Number(url.port) : 3306
     };
-    if (url.pathname) {
+    if (url.pathname && url.pathname !== '/') {
       dbName = url.pathname.substring(1); // Remove leading '/'
     }
   } catch (e) {
-    console.error('Invalid DATABASE_URL format:', e.message);
+    console.error('Invalid database connection URL format:', e.message);
     process.exit(1);
   }
 } else {
-  // Traditional environment variables with SSL support for cloud databases
   dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    port: process.env.DB_PORT || 3306
+    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306
   };
-  
-  // Add SSL if it's a cloud database (PlanetScale requires it)
-  if (process.env.DB_HOST && !process.env.DB_HOST.includes('localhost')) {
-    dbConfig.ssl = 'amazon'; // Works with PlanetScale, AWS RDS, etc.
+
+  const explicitSsl = process.env.DB_SSL || process.env.MYSQL_SSL;
+  if (explicitSsl) {
+    dbConfig.ssl = explicitSsl;
+  } else if (dbConfig.host && dbConfig.host.includes('planetscale')) {
+    dbConfig.ssl = 'amazon';
   }
 }
 
