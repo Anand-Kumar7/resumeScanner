@@ -25,11 +25,16 @@ if (connectionUrl) {
   }
 } else {
   dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306
+    host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MYSQLHOST || 'localhost',
+    user: process.env.DB_USER || process.env.MYSQL_USER || process.env.MYSQLUSER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || '',
+    port: process.env.DB_PORT || process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306
   };
+
+  // Railway uses MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_PORT, MYSQL_DATABASE
+  if (process.env.MYSQL_DATABASE && !process.env.DB_NAME) {
+    dbName = process.env.MYSQL_DATABASE;
+  }
 
   const explicitSsl = process.env.DB_SSL || process.env.MYSQL_SSL;
   if (explicitSsl) {

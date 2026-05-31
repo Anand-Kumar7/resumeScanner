@@ -65,6 +65,15 @@
    NODE_ENV=production
    ```
    
+   If you prefer Railway service variables instead of `DATABASE_URL`, you can also set:
+   ```
+   MYSQL_HOST=<Railway host>
+   MYSQL_USER=<Railway user>
+   MYSQL_PASSWORD=<Railway password>
+   MYSQL_PORT=<Railway port>
+   MYSQL_DATABASE=<Railway database>
+   ```
+   
    **If using PlanetScale with connection string:**
    ```
    DATABASE_URL=mysql://<user>:<password>@<host>:3306/<database>
