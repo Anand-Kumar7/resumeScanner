@@ -10,6 +10,14 @@
 
 ## Step 1: Set Up Backend Database (Render)
 
+### Your Setup: Railway MySQL + Render Backend
+**See [RAILWAY_TO_RENDER_SETUP.md](RAILWAY_TO_RENDER_SETUP.md) for step-by-step instructions.**
+
+Quick summary:
+1. Get `DATABASE_URL` from Railway.app → MySQL service → Connect tab
+2. Set in Render → Settings → Environment Variables
+3. Redeploy and check logs
+
 ### Option A: Using Railway (MySQL Database)
 1. Go to [Railway.app](https://railway.app)
 2. Create account and project

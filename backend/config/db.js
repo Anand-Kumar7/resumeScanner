@@ -3,9 +3,22 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-let dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || 'resume_screening';
-const connectionUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+let dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || 'resume_screening';
+const connectionUrl = process.env.DATABASE_URL?.trim() || process.env.MYSQL_URL?.trim();
 let dbConfig;
+
+const envSources = [];
+if (process.env.DATABASE_URL) envSources.push('DATABASE_URL');
+if (process.env.MYSQL_URL) envSources.push('MYSQL_URL');
+if (process.env.MYSQL_HOST) envSources.push('MYSQL_HOST');
+if (process.env.MYSQLUSER) envSources.push('MYSQLUSER');
+if (process.env.MYSQL_USER) envSources.push('MYSQL_USER');
+if (process.env.DB_HOST) envSources.push('DB_HOST');
+if (process.env.DB_USER) envSources.push('DB_USER');
+if (process.env.DB_PASSWORD) envSources.push('DB_PASSWORD');
+if (process.env.MYSQL_PASSWORD) envSources.push('MYSQL_PASSWORD');
+if (process.env.MYSQLDATABASE) envSources.push('MYSQLDATABASE');
+if (process.env.MYSQL_DATABASE) envSources.push('MYSQL_DATABASE');
 
 if (connectionUrl) {
   try {
@@ -19,6 +32,7 @@ if (connectionUrl) {
     if (url.pathname && url.pathname !== '/') {
       dbName = url.pathname.substring(1); // Remove leading '/'
     }
+    envSources.unshift('connection URL');
   } catch (e) {
     console.error('Invalid database connection URL format:', e.message);
     process.exit(1);
@@ -31,9 +45,12 @@ if (connectionUrl) {
     port: process.env.DB_PORT || process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306
   };
 
-  // Railway uses MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_PORT, MYSQL_DATABASE
   if (process.env.MYSQL_DATABASE && !process.env.DB_NAME) {
     dbName = process.env.MYSQL_DATABASE;
+  }
+
+  if (process.env.MYSQLDATABASE && !process.env.DB_NAME) {
+    dbName = process.env.MYSQLDATABASE;
   }
 
   const explicitSsl = process.env.DB_SSL || process.env.MYSQL_SSL;
@@ -42,6 +59,12 @@ if (connectionUrl) {
   } else if (dbConfig.host && dbConfig.host.includes('planetscale')) {
     dbConfig.ssl = 'amazon';
   }
+}
+
+if (!envSources.length) {
+  console.warn('⚠ No database environment variables detected. Using default local MySQL values.');
+} else {
+  console.log('Database environment sources detected:', envSources.join(', '));
 }
 
 let pool;
