@@ -10,12 +10,22 @@
 
 ## Step 1: Set Up Backend Database (Render)
 
-### Option A: Using PlanetScale (Free MySQL Database)
+### Option A: Using Railway (MySQL Database)
+1. Go to [Railway.app](https://railway.app)
+2. Create account and project
+3. Click "Add Service" → Select "MySQL"
+4. Railway will provision a MySQL database
+5. Copy the `MySQL_URL` from the Railway dashboard
+   - Click on MySQL service
+   - Go to "Connect" tab
+   - Copy the full MySQL connection string (starts with `mysql://`)
+
+### Option B: Using PlanetScale (Free MySQL Database)
 1. Go to [PlanetScale.com](https://planetscale.com)
 2. Create an account and a new MySQL database
 3. Copy connection credentials (host, user, password)
 
-### Option B: AWS RDS / DigitalOcean Databases
+### Option C: AWS RDS / DigitalOcean Databases
 - AWS RDS: Create MySQL instance
 - DigitalOcean: Create Managed Database
 
@@ -43,9 +53,31 @@
    - Select the `backend` folder as root directory
 
 3. **Set Environment Variables in Render Dashboard:**
+   - Go to your Render service → Settings → Environment Variables
+   - Choose one option below:
+
+   **If using Railway (Recommended):**
+   ```
+   DATABASE_URL=<copy from Railway MySQL_URL>
+   PORT=5000
+   GEMINI_API_KEY=<your-gemini-key>
+   ALLOWED_ORIGIN=https://<your-vercel-domain>.vercel.app
+   NODE_ENV=production
+   ```
+   
+   **If using PlanetScale with connection string:**
+   ```
+   DATABASE_URL=mysql://<user>:<password>@<host>:3306/<database>
+   PORT=5000
+   GEMINI_API_KEY=<your-gemini-key>
+   ALLOWED_ORIGIN=https://<your-vercel-domain>.vercel.app
+   NODE_ENV=production
+   ```
+
+   **If using individual environment variables:**
    ```
    PORT=5000
-   DB_HOST=<your-planetscale-host>
+   DB_HOST=<your-database-host>
    DB_PORT=3306
    DB_USER=<your-db-user>
    DB_PASSWORD=<your-db-password>
@@ -130,10 +162,61 @@ When backend starts on Render, it will:
 
 ## Troubleshooting
 
+### MySQL Database Offline After Deployment
+If your application is falling back to db.json (local file database) after deployment:
+
+**Step 1: Check Render Logs**
+1. Go to Render dashboard → Your service → Logs
+2. Look for messages like:
+   - ✓ "Connected to MySQL database" = Success
+   - ⚠ "MySQL database connection failed" = Connection issue
+
+**Step 2: Verify Environment Variables (Railway Users)**
+1. Go to Render → Settings → Environment Variables
+2. Ensure `DATABASE_URL` is set with your Railway connection string:
+   ```
+   DATABASE_URL=mysql://user:password@host:port/database
+   ```
+3. To get your Railway URL:
+   - Go to Railway.app → Your Project → MySQL service
+   - Click "Connect" tab → Copy "MySQL_URL"
+   - Should look like: `mysql://root:password@containers.railway.app:1234/railway`
+
+**Step 3: Verify Environment Variables (Traditional Setup)**
+1. Go to Render → Settings → Environment Variables
+2. Ensure these are set:
+   ```
+   DB_HOST=<your-database-host>
+   DB_USER=<your-username>
+   DB_PASSWORD=<your-password>
+   DB_PORT=3306
+   DB_NAME=resume_screening
+   ```
+
+**Step 4: Check Database Credentials**
+- Verify username/password with your database provider
+- For Railway: Check the credentials in Railway dashboard
+- Test connection locally first:
+  ```bash
+  mysql -h <host> -u <user> -p
+  ```
+
+**Step 5: Check Network Access**
+- Railway: Database should be accessible from anywhere (default)
+- AWS RDS: Add Render's IP to security group inbound rules
+- DigitalOcean: Add Render's IP to firewall
+- PlanetScale: Should work globally
+
+**Step 6: Redeploy**
+1. Make a small change and commit: `git commit --allow-empty -m "Redeploy"`
+2. Push to trigger redeployment: `git push origin main`
+3. Check logs again for ✓ "Connected to MySQL database"
+
 ### Backend not connecting to database
 - Check MySQL host is accessible from Render
 - Verify credentials in environment variables
 - Check firewall/security group rules
+- Ensure SSL requirements are met for cloud databases
 
 ### Frontend calls failing
 - Verify `VITE_API_URL` environment variable is set

@@ -3,14 +3,42 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  port: process.env.DB_PORT || 3306
-};
+// Support both traditional config and connection URL (e.g., for PlanetScale)
+let dbConfig;
+let dbName = process.env.DB_NAME || 'resume_screening';
 
-const dbName = process.env.DB_NAME || 'resume_screening';
+if (process.env.DATABASE_URL) {
+  // Parse connection URL like: mysql://user:password@host:port/database
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    dbConfig = {
+      host: url.hostname,
+      user: url.username,
+      password: url.password,
+      port: url.port || 3306,
+      ssl: 'amazon' // Required for cloud databases like PlanetScale
+    };
+    if (url.pathname) {
+      dbName = url.pathname.substring(1); // Remove leading '/'
+    }
+  } catch (e) {
+    console.error('Invalid DATABASE_URL format:', e.message);
+    process.exit(1);
+  }
+} else {
+  // Traditional environment variables with SSL support for cloud databases
+  dbConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    port: process.env.DB_PORT || 3306
+  };
+  
+  // Add SSL if it's a cloud database (PlanetScale requires it)
+  if (process.env.DB_HOST && !process.env.DB_HOST.includes('localhost')) {
+    dbConfig.ssl = 'amazon'; // Works with PlanetScale, AWS RDS, etc.
+  }
+}
 
 let pool;
 let useFallback = false;
@@ -60,6 +88,8 @@ function writeJsonDB(data) {
 async function initDB() {
   try {
     console.log('Attempting to connect to MySQL database...');
+    console.log(`Host: ${dbConfig.host}, Port: ${dbConfig.port}, Database: ${dbName}`);
+    
     // Connect without database selected to create it if it doesn't exist
     const connection = await mysql.createConnection(dbConfig);
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
@@ -71,15 +101,24 @@ async function initDB() {
       database: dbName,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelayMs: 0
     });
 
-    console.log(`Connected to MySQL database: ${dbName}`);
+    console.log(`✓ Connected to MySQL database: ${dbName}`);
 
     // Create tables
     await createTables();
   } catch (error) {
-    console.warn('MySQL database connection failed:', error.message);
+    console.warn('⚠ MySQL database connection failed:', error.message);
+    if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+      console.warn('  - Check DB_USER and DB_PASSWORD');
+    } else if (error.code === 'ER_BAD_DB_ERROR') {
+      console.warn('  - Database does not exist and could not be created');
+    } else if (error.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.warn('  - Connection was lost. Check network/firewall.');
+    }
     console.log('Falling back to local file-based database (db.json)...');
     useFallback = true;
     initFallbackDB();
